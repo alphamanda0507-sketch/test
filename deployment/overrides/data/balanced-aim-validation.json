@@ -1,0 +1,14 @@
+{
+  "version": "balanced-aim-20261106-r11",
+  "passed": true,
+  "intent": "Prefer a recoil, stability, aim and movement balance close to the user's second screenshot, using weapon-relative ratios rather than fixed AKM values",
+  "rankingWeights": {"recoilAndAvailableTrace": 0.35, "springKick": 0.075, "stability": 0.475, "handling": 0.1},
+  "handlingWeights": {"ads": 0.75, "sprintToFire": 0.2, "adsMove": 0.05},
+  "adsMoveScoringBenefitCap": "10 percent above bare weapon; actual speed and constraints are unchanged",
+  "latestScreenshotRisk": 0.4697184114742499,
+  "preferredScreenshotRisk": 0.46465764367406454,
+  "lowerRiskIsBetter": true,
+  "akmWithUserReferenceAndUnavailableFFC": {"vertical": 0.6111759768211473, "horizontal": 0.6111759768211473, "adsMs": 277, "adsMoveMps": 2.4770206072831997, "stabilityScore": 70, "breathDegrees": 0.145708888125, "muzzleVelocityMps": 689.4250022619962, "rangeMeters": 34.5},
+  "checks": ["preferred screenshot numeric scenario outranks latest", "faster ADS affects primary ranking", "extra ADS movement above 10 percent gain does not increase score", "excluded handling is ignored", "recoil deterioration is still penalized", "prior stability regression", "69 weapon smoke test and feasible-candidate constraints"],
+  "limitations": "Exact screenshot parts and trace data were not supplied. No exact reconstruction, global optimum, or game hit probability is claimed. Limited search may not find a feasible candidate for every weapon."
+}
