@@ -1,0 +1,35 @@
+name: Deploy Delta Lab
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and extract static site
+        run: |
+          cat deployment/site.tar.gz.part-* > /tmp/delta-lab.tar.gz
+          echo '1f14ac8928c2b14303e23afd4cadfa2a351685f7363e1097fc7ecb038cd95bdf  /tmp/delta-lab.tar.gz' | sha256sum --check
+          mkdir public
+          tar -xzf /tmp/delta-lab.tar.gz -C public
+          test -f public/index.html
+          test -f public/data/dfttk/library/mp.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
