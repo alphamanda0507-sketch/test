@@ -1,0 +1,11 @@
+{
+  "version": "ballistics-20261106-r8",
+  "weaponsTested": 69,
+  "modeCases": 207,
+  "modes": ["balanced", "preserve", "feedback"],
+  "rule": "Range and muzzle velocity must be at least the bare-weapon values. Preserve and feedback modes additionally keep at least the selected reference build values.",
+  "feedbackTradeoffException": ["range", "velocity"],
+  "checks": ["ballistic guard constraints cannot be excluded through stat checkboxes", "feasible candidates never violate ballistic floors", "five-percent feedback tradeoff does not reduce ballistic floors", "weak reference builds cannot bypass bare-weapon floors", "range and muzzle velocity feedback presets are available"],
+  "akmReferenceFloors": {"rangeMeters": 34.5, "muzzleVelocityMps": 689.4250022619962},
+  "globalOptimumProven": false
+}
