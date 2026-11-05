@@ -1,0 +1,12 @@
+{
+  "version": "stability-20261106-r10",
+  "passed": true,
+  "rankingWeights": {"recoilAndAvailableTrace": 0.5, "springKick": 0.1, "stability": 0.4},
+  "stabilityWeights": {"camera": 0.4, "movement": 0.25, "breathing": 0.2, "holdBreath": 0.15},
+  "latestScreenshotRisk": 0.5137278350515464,
+  "preferredScreenshotRisk": 0.4835378378378379,
+  "lowerRiskIsBetter": true,
+  "akmWithUserReferenceAndUnavailableFFC": {"vertical": 0.5829561636423742, "horizontal": 0.5829561636423742, "adsMs": 277, "adsMoveMps": 2.4770206072831997, "stabilityScore": 68, "breathDegrees": 0.15890432737500002, "muzzleVelocityMps": 689.4250022619962, "rangeMeters": 34.5},
+  "checks": ["preferred screenshot numeric scenario outranks latest", "camera improvement below old floor affects ranking", "movement sway improvement affects ranking", "excluded stability and control do not affect ranking", "69 weapon smoke test and feasible-candidate constraint checks"],
+  "limitations": "Screenshots lack exact parts and trace data. Ranking is a heuristic, not game hit probability or a global optimum. 69-weapon smoke test does not assert every weapon has a feasible result within the limited budget."
+}
