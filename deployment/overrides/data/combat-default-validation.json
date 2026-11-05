@@ -1,0 +1,11 @@
+{
+  "version": "combat-20261106-r9",
+  "weaponsSmokeTested": 69,
+  "defaultMode": "combat",
+  "ranking": "recoil axes and available recoil-path metrics first, with kick and stability risk; diminishing returns once sway is already low",
+  "hardGuards": ["weapon-relative score floors", "breathing and movement sway at most 60 percent of bare weapon", "horizontal and vertical camera sway at most 60 percent of bare weapon", "baseline handling and mobility guards", "range and muzzle velocity at least bare and current values"],
+  "akmWithUserReferenceAndUnavailableFFC": {"vertical": 0.5656064881152, "horizontal": 0.5656064881152, "adsMs": 277, "adsMoveMps": 2.4770206072831997, "stabilityScore": 66, "breathDegrees": 0.18407961562499997, "muzzleVelocityMps": 689.4250022619962, "rangeMeters": 34.5},
+  "comparison": "The photo-2-like numeric scenario outranks the photo-1-like scenario; this is not an exact reconstruction of the screenshots' unknown parts or recoil traces.",
+  "preserveModeAvailable": true,
+  "globalOptimumProven": false
+}
