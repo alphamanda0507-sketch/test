@@ -1,0 +1,8 @@
+{
+  "version": "feedback-20261106-r7",
+  "weaponsSmokeTested": 69,
+  "checks": ["selected candidate including tuning is the reference", "selected feedback metrics do not regress", "default mode preserves every active comparison metric", "optional tradeoffs bounded to 5 percent on non-target active metrics", "explicit feedback reactivates its excluded stat family", "unavailable parts remain excluded", "result recalculates to displayed values", "previous recommendation restored through history"],
+  "akmPersonalBuild": {"strictAds": "maintained", "strictStability": "maintained", "strictAdsMove": "maintained", "tradeoffAds": "improved", "tradeoffStability": "improved", "tradeoffAdsMove": "maintained"},
+  "limitations": ["bounded heuristic search", "reference is calculator data rather than game measurement", "no model training or automatic source-data correction"],
+  "globalOptimumProven": false
+}
