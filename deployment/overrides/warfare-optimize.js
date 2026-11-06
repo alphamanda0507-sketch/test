@@ -16,6 +16,52 @@ function excludedOnlyParts(pack,o){const protectedGroups=new Set((o.constraints|
 function effectiveWeights(o){const groups=o.excludedStats??[];if(!Array.isArray(groups)||groups.some(id=>!STAT_GROUPS[id]))throw Error('배제할 스탯을 확인하세요.');const weights=Object.fromEntries(Object.entries(objectiveWeights(o)).filter(([k])=>!isExcluded(k,groups))),total=Object.values(weights).reduce((a,b)=>a+b,0);if(!total)throw Error('선택한 목표가 모두 평가에서 제외되었습니다. 배제를 해제하거나 다른 목표를 추가하세요.');return Object.fromEntries(Object.entries(weights).map(([k,w])=>[k,w/total]));}
 const PRESETS={recoil:{recoil:1},ads:{ads:1},adsMove:{adsMove:1},hipSpread:{hipSpread:1},ttk:{ttk:1},balanced:{recoil:.4,ads:.25,adsMove:.2,hipSpread:.15}};
 function opticType(pack,id){const p=pack.parts[id]?.opticProfile;if(!p)return null;const zooms=[...(p.magnifications||[]),p.defaultMagnification].filter(Number.isFinite);return zooms.length?(Math.max(...zooms)>=2?'magnified':'unmagnified'):'unknown';}
+
+// Enumerate primary lenses through compatible adapter/platform routes.
+// A choice fixes its route as well as the lens, including nested sockets.
+function opticChoices(pack,options={}){
+ const mode=options.optic||'any',banned=new Set(options.banned||[]),locked=options.locked||{},best=new Map(),seen=new Set();
+ if(mode==='none')return[];
+ const primary=s=>!['31','40'].includes(String(s.socketId));
+ const selectable=id=>pack.display.objects[id]?.playerSelectable===true&&!pack.display.objects[id]?.selectionDisabledReason&&!banned.has(id);
+ function leads(id,trail=new Set()){
+  if(trail.has(id)||!selectable(id))return false;
+  if(opticType(pack,id))return true;
+  const next=new Set(trail);next.add(id);
+  return(pack.assembly.socketProviders[id]?.sockets||[]).some(s=>primary(s)&&(!s.modes||s.modes.includes('mp'))&&(s.optionItemIds||[]).some(child=>leads(child,next)));
+ }
+ function visit(chosen,prefix='',depth=0){
+  if(depth>8)return;
+  const key=JSON.stringify(Object.entries(chosen).sort());if(seen.has(key))return;seen.add(key);
+  const state=E.assembly(pack,chosen);
+  if(Object.entries(chosen).some(([slot,id])=>state.selected[slot]!==id))return;
+  for(const mount of state.mounts){
+   const type=opticType(pack,mount.itemId);if(mount.source!=='selected'||!type||!primary(mount)||!selectable(mount.itemId)||(mode!=='any'&&type!==mode))continue;
+   const old=best.get(mount.itemId),profile=pack.parts[mount.itemId].opticProfile;
+   if(!old||Object.keys(chosen).length<Object.keys(old.chosen).length)best.set(mount.itemId,{id:mount.itemId,type,chosen:{...chosen},path:mount.path,image:pack.display.objects[mount.itemId]?.imagePath||'',magnifications:[...new Set([...(profile.magnifications||[]),profile.defaultMagnification].filter(Number.isFinite))].sort((a,b)=>a-b)});
+  }
+  for(const socket of state.allSockets||state.sockets){
+   const slot=socket.slotPath||String(socket.socketId);
+   if(!primary(socket)||(prefix&&!slot.startsWith(prefix+'/'))||locked[slot])continue;
+   for(const id of socket.optionItemIds||[]){
+    if(chosen[slot]===id||!leads(id))continue;
+    const type=opticType(pack,id);if(type&&mode!=='any'&&type!==mode)continue;
+    visit({...chosen,[slot]:id},slot,depth+1);
+   }
+  }
+ }
+ visit({...locked});
+ return [...best.values()].sort((a,b)=>a.id.localeCompare(b.id));
+}
+function lockSelectedOptic(pack,options){
+ if(!options.opticId)return options;
+ if(!/^\d{11}$/.test(options.opticId))throw Error('선택한 조준경을 확인하세요.');
+ if(options.optic==='none')throw Error('조준경 제외 조건에서는 특정 조준경을 선택할 수 없습니다.');
+ const route=opticChoices(pack,options).find(p=>p.id===options.opticId);
+ if(!route)throw Error('선택한 조준경을 장착할 수 없습니다. 무기·배율·제외 파츠·고정 파츠 조건을 확인하세요.');
+ return {...options,locked:{...options.locked,...route.chosen},required:[...new Set([...(options.required||[]),options.opticId])],opticRoute:{...route.chosen}};
+}
+
 function opticStatus(pack,state,mode='any'){const lenses=state.mounts.filter(m=>m.source==='selected'&&opticType(pack,m.itemId)),primary=lenses.filter(m=>!['31','40'].includes(m.socketId));const allowed=mode==='any'||(mode==='none'?lenses.length===0&&!state.mounts.some(m=>m.source==='selected'&&pack.display.objects[m.itemId]?.categoryId==='scope'):primary.some(m=>opticType(pack,m.itemId)===mode)&&lenses.every(m=>opticType(pack,m.itemId)===mode));return{mode,met:allowed,items:lenses.map(m=>({id:m.itemId,path:m.path,type:opticType(pack,m.itemId)}))};}
 function stable(value){if(Array.isArray(value))return value.map(stable);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,stable(value[k])]));return value;}
 const key=(chosen,tuning={})=>JSON.stringify(stable({chosen,tuning}));
@@ -63,7 +109,7 @@ function compareCandidates(a,b){if(a.feasible!==b.feasible)return a.feasible?-1:
 function partSignature(chosen={}){return JSON.stringify(Object.values(chosen).sort());}
 function partChanges(before={},after={}){return [...new Set([...Object.keys(before),...Object.keys(after)])].sort().filter(slot=>(before[slot]||null)!==(after[slot]||null)).map(slot=>({slot,before:before[slot]||null,after:after[slot]||null}));}
 function diverseConfigurations(items,limit=5){const best=new Map();for(const item of [...items].sort(compareCandidates)){const id=partSignature(item.chosen);if(!best.has(id))best.set(id,item);}const ranked=[...best.values()],selected=[],seen=new Set(),core=x=>JSON.stringify(Object.entries(x.chosen||{}).filter(([slot])=>['1','2','3','5','6','8','38','67'].includes(slot.split('/').at(-1))).map(([,id])=>id).sort());for(const item of ranked){const id=core(item);if(!seen.has(id)){selected.push(item);seen.add(id);}if(selected.length===limit)return selected;}for(const item of ranked){if(!selected.includes(item))selected.push(item);if(selected.length===limit)break;}return selected;}
-async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,combat,summary}=input,o=validate(input.options||{}),baseline=metrics(pack,base,combat,summary,{}, {},o),reference=metrics(pack,base,combat,summary,input.currentChosen||{},input.currentTuning||{},o).metrics;if(o.recommendationMode==='simple')Object.assign(o,o.completionMode==='feedback'?feedbackOptions(reference,o):simpleOptions(o.completionMode==='preserve'?reference:baseline.metrics,o));if(o.recommendationMode==='simple')protectSimpleBallistics(o,baseline.metrics,reference);const weights=effectiveWeights(o),tiers=objectiveTiers(weights,o.priorities);if(weights.ttk&&!Number.isFinite(baseline.metrics.ttk))throw Error('이 무기는 특수 발사·산탄·충전 방식으로 TTK 최적화를 지원하지 않습니다. 다른 목표를 선택하세요.');
+async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,combat,summary}=input,o=validate(input.options||{}),baseline=metrics(pack,base,combat,summary,{}, {},o),reference=metrics(pack,base,combat,summary,input.currentChosen||{},input.currentTuning||{},o).metrics;if(o.recommendationMode==='simple')Object.assign(o,o.completionMode==='feedback'?feedbackOptions(reference,o):simpleOptions(o.completionMode==='preserve'?reference:baseline.metrics,o));if(o.recommendationMode==='simple')protectSimpleBallistics(o,baseline.metrics,reference);Object.assign(o,lockSelectedOptic(pack,o));const weights=effectiveWeights(o),tiers=objectiveTiers(weights,o.priorities);if(weights.ttk&&!Number.isFinite(baseline.metrics.ttk))throw Error('이 무기는 특수 발사·산탄·충전 방식으로 TTK 최적화를 지원하지 않습니다. 다른 목표를 선택하세요.');
  if(o.magazineCapacity!==undefined&&o.magazineCapacity!==null&&o.magazineCapacity!=='any'){const n=o.magazineCapacity==='base'?baseline.metrics.capacity:Number(o.magazineCapacity);if(!Number.isInteger(n)||n<1||n>500)throw Error('탄창 용량을 확인하세요.');o.magazineCapacity=n;o.constraints.push({metric:'capacity',op:'min',value:n,source:'magazineCapacity'});o.constraints.push({metric:'capacity',op:'max',value:n,source:'magazineCapacity'});}
  if(o.preserveControl)for(const metric of ['autoVertical','autoHorizontal','springKick'])o.constraints.push({metric,op:'max',value:reference[metric],source:'currentBuild'});
  const start=Date.now(),cache=new Map(),archive=new Map(),feedbackBank=new Map(),autoExcludedParts=excludedOnlyParts(pack,o),banned=new Set([...o.banned,...autoExcludedParts]),locked=o.locked,required=new Set(o.required),budget=o.maxEvaluations;let evaluations=0,stopped=false,bestFeasible=null,pruning=false;const cleanupReserve=o.excludedStats?.length?Math.min(Math.floor(budget*.25),600):0;
@@ -119,5 +165,5 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
 }
 function tacticalComparison(pack,base,chosen,tuning){const off=E.calculate(pack,base,chosen,tuning,false),on=E.calculate(pack,base,chosen,tuning,true),present=off.raw.some(e=>e.scope==='TacticalEffective'&&e.itemId!==pack.weaponId);const rows=[];if(present){for(const id of ['3','5','6','4'])rows.push({key:'panel'+id,label:E.fields[id],unit:'점',off:off.panel[id],on:on.panel[id]});for(const [key,d]of Object.entries(off.details))if(on.details[key]&&Math.abs(d.value-on.details[key].value)>1e-8)rows.push({key,label:d.label,unit:d.unit,off:d.value,on:on.details[key].value});}return{present,rows};}
 function magazineOptions(pack,base,combat,summary){const capacities=new Set([metrics(pack,base,combat,summary,{}, {},{laser:false}).metrics.capacity]);for(const socket of E.assembly(pack,{}).allSockets||[]){for(const id of socket.optionItemIds||[]){if(!(pack.effectsByItemId[id]?.mp||[]).some(e=>e.target==='GMagCapacity'))continue;const value=metrics(pack,base,combat,summary,{[socket.slotPath||String(socket.socketId)]:id},{},{laser:false}).metrics.capacity;if(Number.isFinite(value))capacities.add(value);}}return [...capacities].sort((a,b)=>a-b);}
-const api={partSignature,partChanges,diverseConfigurations,tacticalComparison,magazineOptions,combatProfile:P,combatOptions,combatRisk,ballisticFloors,protectSimpleBallistics,FEEDBACK,feedbackOptions,feedbackAssessment,completionOptions,completionKeys,completionAssessment,simpleStabilityRisk,simpleBalanceRisk,simpleRecoilRisk,simpleOptions,PRACTICAL_EXPANSIONS,practicalPlan,practicalScore,STAT_GROUPS,isExcluded,effectiveWeights,excludedOnlyParts,METRICS,PRESETS,run,metrics,key,opticType,opticStatus,compareCandidates,objectiveTiers};root.WarfareOptimize=api;if(typeof module!=='undefined')module.exports=api;
+const api={opticChoices,lockSelectedOptic,partSignature,partChanges,diverseConfigurations,tacticalComparison,magazineOptions,combatProfile:P,combatOptions,combatRisk,ballisticFloors,protectSimpleBallistics,FEEDBACK,feedbackOptions,feedbackAssessment,completionOptions,completionKeys,completionAssessment,simpleStabilityRisk,simpleBalanceRisk,simpleRecoilRisk,simpleOptions,PRACTICAL_EXPANSIONS,practicalPlan,practicalScore,STAT_GROUPS,isExcluded,effectiveWeights,excludedOnlyParts,METRICS,PRESETS,run,metrics,key,opticType,opticStatus,compareCandidates,objectiveTiers};root.WarfareOptimize=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof self!=='undefined'?self:globalThis);

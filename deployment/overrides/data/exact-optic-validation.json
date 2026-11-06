@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "weapons": 69,
+  "lenses": 1863,
+  "nestedRoutes": 200,
+  "cases": [
+    {
+      "weapon": "18010000001",
+      "opticId": "13110000043",
+      "mode": "unmagnified",
+      "kind": "advanced",
+      "candidates": 5
+    },
+    {
+      "weapon": "18010000001",
+      "opticId": "13110000052",
+      "mode": "magnified",
+      "kind": "advanced",
+      "candidates": 5
+    },
+    {
+      "weapon": "18010000008",
+      "opticId": "13110000043",
+      "mode": "unmagnified",
+      "kind": "combat",
+      "candidates": 2
+    },
+    {
+      "weapon": "18020000011",
+      "opticId": "13110000043",
+      "mode": "any",
+      "kind": "balanced",
+      "candidates": 5
+    },
+    {
+      "weapon": "18010000001",
+      "opticId": "13110000043",
+      "mode": "unmagnified",
+      "kind": "preserve",
+      "candidates": 5
+    },
+    {
+      "weapon": "18010000001",
+      "opticId": "13110000043",
+      "mode": "unmagnified",
+      "kind": "feedback",
+      "candidates": 5
+    }
+  ]
+}
