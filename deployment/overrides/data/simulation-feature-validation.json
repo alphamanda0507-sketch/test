@@ -1,0 +1,32 @@
+{
+  "version": "simulation-20261106-r12",
+  "passed": true,
+  "laser": {
+    "part": "13160000005",
+    "path": "4/19",
+    "handling": {
+      "key": "panel5",
+      "label": "조작성",
+      "unit": "점",
+      "off": 63,
+      "on": 70
+    }
+  },
+  "magazines": [
+    {
+      "capacity": 30,
+      "feasible": true
+    },
+    {
+      "capacity": 40,
+      "feasible": false
+    },
+    {
+      "capacity": 31,
+      "feasible": false
+    }
+  ],
+  "weapons": 69,
+  "feasibleAt200": 36,
+  "limitedBudget": true
+}

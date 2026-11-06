@@ -1,0 +1,354 @@
+{
+  "version": "simulation-20261106-r12",
+  "method": "Offline alternate-ranking exploration; seeds are re-evaluated under the single current weight vector, bans, optics, laser and magazine conditions before use",
+  "weapons": 69,
+  "evaluations": 157770,
+  "report": [
+    {
+      "weapon": "18010000001",
+      "evaluations": 2537,
+      "seeds": 0
+    },
+    {
+      "weapon": "18010000006",
+      "evaluations": 6115,
+      "seeds": 1
+    },
+    {
+      "weapon": "18010000008",
+      "evaluations": 2455,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000010",
+      "evaluations": 2505,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000012",
+      "evaluations": 2466,
+      "seeds": 0
+    },
+    {
+      "weapon": "18010000013",
+      "evaluations": 2504,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000014",
+      "evaluations": 2480,
+      "seeds": 0
+    },
+    {
+      "weapon": "18010000015",
+      "evaluations": 2489,
+      "seeds": 1
+    },
+    {
+      "weapon": "18010000016",
+      "evaluations": 2475,
+      "seeds": 0
+    },
+    {
+      "weapon": "18010000017",
+      "evaluations": 2484,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000018",
+      "evaluations": 2529,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000021",
+      "evaluations": 2489,
+      "seeds": 0
+    },
+    {
+      "weapon": "18010000023",
+      "evaluations": 2482,
+      "seeds": 0
+    },
+    {
+      "weapon": "18010000024",
+      "evaluations": 2510,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000031",
+      "evaluations": 2539,
+      "seeds": 1
+    },
+    {
+      "weapon": "18010000037",
+      "evaluations": 2439,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000038",
+      "evaluations": 2495,
+      "seeds": 0
+    },
+    {
+      "weapon": "18010000040",
+      "evaluations": 2509,
+      "seeds": 1
+    },
+    {
+      "weapon": "18010000042",
+      "evaluations": 2501,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000043",
+      "evaluations": 2507,
+      "seeds": 1
+    },
+    {
+      "weapon": "18010000044",
+      "evaluations": 2522,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000045",
+      "evaluations": 2475,
+      "seeds": 1
+    },
+    {
+      "weapon": "18010000049",
+      "evaluations": 2509,
+      "seeds": 2
+    },
+    {
+      "weapon": "18010000051",
+      "evaluations": 2539,
+      "seeds": 1
+    },
+    {
+      "weapon": "18010000052",
+      "evaluations": 2435,
+      "seeds": 0
+    },
+    {
+      "weapon": "18020000001",
+      "evaluations": 2437,
+      "seeds": 2
+    },
+    {
+      "weapon": "18020000002",
+      "evaluations": 2458,
+      "seeds": 0
+    },
+    {
+      "weapon": "18020000003",
+      "evaluations": 2474,
+      "seeds": 0
+    },
+    {
+      "weapon": "18020000004",
+      "evaluations": 2486,
+      "seeds": 2
+    },
+    {
+      "weapon": "18020000005",
+      "evaluations": 2468,
+      "seeds": 0
+    },
+    {
+      "weapon": "18020000006",
+      "evaluations": 2473,
+      "seeds": 2
+    },
+    {
+      "weapon": "18020000008",
+      "evaluations": 2471,
+      "seeds": 2
+    },
+    {
+      "weapon": "18020000009",
+      "evaluations": 2500,
+      "seeds": 2
+    },
+    {
+      "weapon": "18020000010",
+      "evaluations": 2490,
+      "seeds": 2
+    },
+    {
+      "weapon": "18020000011",
+      "evaluations": 2475,
+      "seeds": 1
+    },
+    {
+      "weapon": "18020000012",
+      "evaluations": 2504,
+      "seeds": 1
+    },
+    {
+      "weapon": "18020000046",
+      "evaluations": 2532,
+      "seeds": 2
+    },
+    {
+      "weapon": "18030000001",
+      "evaluations": 2485,
+      "seeds": 0
+    },
+    {
+      "weapon": "18030000002",
+      "evaluations": 2482,
+      "seeds": 1
+    },
+    {
+      "weapon": "18030000004",
+      "evaluations": 2469,
+      "seeds": 0
+    },
+    {
+      "weapon": "18030000005",
+      "evaluations": 2433,
+      "seeds": 0
+    },
+    {
+      "weapon": "18030000006",
+      "evaluations": 2449,
+      "seeds": 0
+    },
+    {
+      "weapon": "18040000001",
+      "evaluations": 2472,
+      "seeds": 0
+    },
+    {
+      "weapon": "18040000002",
+      "evaluations": 2508,
+      "seeds": 2
+    },
+    {
+      "weapon": "18040000003",
+      "evaluations": 2493,
+      "seeds": 0
+    },
+    {
+      "weapon": "18040000004",
+      "evaluations": 2540,
+      "seeds": 2
+    },
+    {
+      "weapon": "18050000002",
+      "evaluations": 2467,
+      "seeds": 2
+    },
+    {
+      "weapon": "18050000003",
+      "evaluations": 2446,
+      "seeds": 0
+    },
+    {
+      "weapon": "18050000004",
+      "evaluations": 2487,
+      "seeds": 2
+    },
+    {
+      "weapon": "18050000005",
+      "evaluations": 2490,
+      "seeds": 0
+    },
+    {
+      "weapon": "18050000006",
+      "evaluations": 2509,
+      "seeds": 1
+    },
+    {
+      "weapon": "18050000007",
+      "evaluations": 2505,
+      "seeds": 2
+    },
+    {
+      "weapon": "18050000008",
+      "evaluations": 2410,
+      "seeds": 0
+    },
+    {
+      "weapon": "18050000031",
+      "evaluations": 2442,
+      "seeds": 2
+    },
+    {
+      "weapon": "18050000032",
+      "evaluations": 2468,
+      "seeds": 0
+    },
+    {
+      "weapon": "18050000033",
+      "evaluations": 2542,
+      "seeds": 2
+    },
+    {
+      "weapon": "18060000007",
+      "evaluations": 1888,
+      "seeds": 0
+    },
+    {
+      "weapon": "18060000008",
+      "evaluations": 1778,
+      "seeds": 0
+    },
+    {
+      "weapon": "18060000009",
+      "evaluations": 2422,
+      "seeds": 0
+    },
+    {
+      "weapon": "18060000011",
+      "evaluations": 1214,
+      "seeds": 0
+    },
+    {
+      "weapon": "18060000033",
+      "evaluations": 2440,
+      "seeds": 0
+    },
+    {
+      "weapon": "18070000002",
+      "evaluations": 170,
+      "seeds": 0
+    },
+    {
+      "weapon": "18070000003",
+      "evaluations": 2441,
+      "seeds": 2
+    },
+    {
+      "weapon": "18070000004",
+      "evaluations": 700,
+      "seeds": 0
+    },
+    {
+      "weapon": "18070000005",
+      "evaluations": 346,
+      "seeds": 0
+    },
+    {
+      "weapon": "18070000006",
+      "evaluations": 706,
+      "seeds": 0
+    },
+    {
+      "weapon": "18070000010",
+      "evaluations": 390,
+      "seeds": 0
+    },
+    {
+      "weapon": "18070000033",
+      "evaluations": 303,
+      "seeds": 0
+    },
+    {
+      "weapon": "18150000001",
+      "evaluations": 117,
+      "seeds": 0
+    }
+  ],
+  "globalOptimumProven": false
+}

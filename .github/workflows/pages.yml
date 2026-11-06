@@ -29,6 +29,9 @@ jobs:
           test -f public/data/dfttk/library/mp.json
           node --check public/warfare-optimize.js
           node --check public/warfare-automation-ui.js
+          node --check public/warfare-balance-profile.js
+          node --check public/warfare-recommendation-seeds.js
+          node --check public/warfare.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

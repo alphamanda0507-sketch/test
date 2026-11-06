@@ -1,2 +1,2 @@
-importScripts('warfare-recoil.js?v=balanced-aim-20261106-r11','warfare-engine.js?v=balanced-aim-20261106-r11','warfare-optimize.js?v=balanced-aim-20261106-r11');
+importScripts('warfare-recommendation-seeds.js?v=simulation-20261106-r12','warfare-balance-profile.js?v=simulation-20261106-r12','warfare-recoil.js?v=simulation-20261106-r12','warfare-engine.js?v=simulation-20261106-r12','warfare-optimize.js?v=simulation-20261106-r12');
 self.onmessage=async event=>{try{const answer=await WarfareOptimize.run(event.data,p=>self.postMessage({type:'progress',...p}));self.postMessage({type:'done',answer});}catch(error){self.postMessage({type:'error',message:error.message});}};
