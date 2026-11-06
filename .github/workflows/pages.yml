@@ -32,6 +32,8 @@ jobs:
           node --check public/warfare-balance-profile.js
           node --check public/warfare-recommendation-seeds.js
           node --check public/warfare.js
+          node --check public/warfare-codmunity.js
+          node --check public/codmunity-loadouts.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
