@@ -31,6 +31,7 @@ jobs:
           node --check public/warfare-automation-ui.js
           node --check public/warfare-balance-profile.js
           node --check public/warfare-recommendation-seeds.js
+          test -f public/data/optic-images/13110000043.webp
           node --check public/warfare-optic-picker.js
           node --check public/warfare.js
       - uses: actions/configure-pages@v5

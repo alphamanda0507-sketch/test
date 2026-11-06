@@ -20,7 +20,7 @@ function render(){
   const radio=make('input');radio.type='radio';radio.name='exact-optic';radio.value=choice.id;radio.checked=selection===choice.id;radio.setAttribute('aria-label',s.name(choice.id));
   radio.onchange=()=>{selection=choice.id;render();change(s.name(choice.id)+' 조준경을 고정했습니다. 다시 추천하세요.');};
   const photo=make('span','optic-choice-photo');
-  if(choice.image){const img=make('img');img.src=choice.image;img.alt=s.name(choice.id);img.loading='lazy';img.onerror=()=>{photo.replaceChildren(make('span','optic-photo-unavailable','사진 없음'));};photo.append(img);}else photo.append(make('span','optic-photo-unavailable','사진 없음'));
+  if(choice.image){const img=make('img');img.src='data/optic-images/'+choice.id+'.webp';img.alt=s.name(choice.id);img.loading='lazy';img.onerror=()=>{photo.replaceChildren(make('span','optic-photo-unavailable','사진 없음'));};photo.append(img);}else photo.append(make('span','optic-photo-unavailable','사진 없음'));
   const zoom=choice.magnifications.length?choice.magnifications.map(v=>Number(v.toFixed(2))+'×').join(' / '):'배율 정보 없음';
   card.append(radio,photo,make('strong','',s.name(choice.id)),make('small','',zoom+(Object.keys(choice.chosen).length>1?' · 장착대 포함':'')));
   host.append(card);
