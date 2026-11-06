@@ -1,0 +1,200 @@
+{
+  "version": "feedback-parts-20261106-r13",
+  "passed": true,
+  "cases": [
+    {
+      "weapon": "18010000006",
+      "personal": true,
+      "status": "improved",
+      "diversity": {
+        "configurationCount": 2,
+        "partAlternatives": 2,
+        "tuningOnly": 0,
+        "maximum": 5
+      },
+      "candidates": [
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "11/50/11",
+            "4/34",
+            "5"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "11/50/11",
+            "4/34"
+          ],
+          "improved": true
+        }
+      ]
+    },
+    {
+      "weapon": "18010000001",
+      "personal": false,
+      "status": "improved",
+      "diversity": {
+        "configurationCount": 5,
+        "partAlternatives": 5,
+        "tuningOnly": 0,
+        "maximum": 5
+      },
+      "candidates": [
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "11",
+            "2",
+            "2/6",
+            "3",
+            "4/19",
+            "4/8",
+            "5"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "2",
+            "2/6",
+            "3",
+            "4/19",
+            "4/8",
+            "5"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "11",
+            "2",
+            "2/6",
+            "3",
+            "4/8",
+            "5"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "2",
+            "2/6",
+            "3",
+            "4/17",
+            "4/8",
+            "5"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "2",
+            "2/6",
+            "3",
+            "4/19",
+            "4/8",
+            "5"
+          ],
+          "improved": true
+        }
+      ]
+    },
+    {
+      "weapon": "18020000011",
+      "personal": false,
+      "status": "improved",
+      "diversity": {
+        "configurationCount": 5,
+        "partAlternatives": 5,
+        "tuningOnly": 0,
+        "maximum": 5
+      },
+      "candidates": [
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "11",
+            "2/6",
+            "3",
+            "4/17",
+            "4/8",
+            "52"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "11",
+            "2/6",
+            "3",
+            "4/17",
+            "4/19",
+            "4/8",
+            "52"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "11",
+            "2/6",
+            "3",
+            "4/17",
+            "4/19",
+            "4/8",
+            "52"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "11",
+            "11/50",
+            "2/6",
+            "3",
+            "4/17",
+            "4/8",
+            "52"
+          ],
+          "improved": true
+        },
+        {
+          "variant": "parts",
+          "changedSlots": [
+            "1",
+            "11",
+            "2/6",
+            "3",
+            "4/17",
+            "4/19",
+            "4/8",
+            "52"
+          ],
+          "improved": true
+        }
+      ]
+    }
+  ],
+  "strictStatus": "maintained",
+  "method": "Canonical part signatures; distinct-part retention, compound swaps and separate tuning; all original guards remain",
+  "globalOptimumProven": false
+}

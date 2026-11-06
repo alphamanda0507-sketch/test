@@ -18,3 +18,5 @@
 .opt-ballistic-floor{border-left:3px solid var(--accent);padding:10px 12px;background:var(--bg);font-size:13px;line-height:1.7}
 
 .laser-state-pair{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:10px}.laser-state-pair[hidden]{display:none}.laser-state-pair summary{font-weight:600;cursor:pointer}.laser-state-pair table{width:100%;font-size:12px;margin-top:10px}.laser-state-pair th,.laser-state-pair td{text-align:left;padding:6px;border-bottom:1px solid var(--line)}#opt-magazine-label{display:grid;gap:8px;margin-top:14px}#opt-magazine-label[hidden]{display:none}
+
+.opt-feedback-parts{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:10px}.opt-feedback-parts h4{margin:0 0 8px}.opt-feedback-parts li{font-size:13px;line-height:1.8}.opt-feedback-diversity{padding:12px;border-left:3px solid var(--accent);font-size:13px;line-height:1.7}
