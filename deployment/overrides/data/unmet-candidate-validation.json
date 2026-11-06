@@ -1,0 +1,17 @@
+{
+  "version": "unmet-apply-20261107-r14",
+  "passed": true,
+  "cases": [
+    {
+      "mode": "combat",
+      "candidates": 1,
+      "allMarkedUnmet": true
+    },
+    {
+      "mode": "feedback",
+      "candidates": 5,
+      "allMarkedUnmet": true
+    }
+  ],
+  "scope": "Candidate availability and unchanged unmet flags; apply and share buttons verified in browser"
+}
