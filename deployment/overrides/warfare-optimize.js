@@ -140,13 +140,24 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
   if(depth>5||stopped)return;const state=E.assembly(pack,chosen);
   for(const socket of state.allSockets||state.sockets){if(prefix&&!socket.slotPath.startsWith(prefix+'/'))continue;if(['31','40'].includes(String(socket.socketId)))continue;const sid=socket.slotPath;
    if(locked[sid]||(sid===String(socket.socketId)&&locked[String(socket.socketId)]))continue;
-   for(const id of socket.optionItemIds){if(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true)continue;const type=opticType(pack,id),adapter=pack.display.objects[id]?.categoryId==='scope'&&!type&&pack.assembly.socketProviders[id];if(!type&&!adapter)continue;if(o.optic==='none'||(type&&o.optic&&o.optic!=='any'&&type!==o.optic))continue;
+   for(const id of socket.optionItemIds){if(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true||pack.display.objects[id]?.selectionDisabledReason)continue;const type=opticType(pack,id),adapter=pack.display.objects[id]?.categoryId==='scope'&&!type&&pack.assembly.socketProviders[id];if(!type&&!adapter)continue;if(o.optic==='none'||(type&&o.optic&&o.optic!=='any'&&type!==o.optic))continue;
     const next={...chosen,[sid]:id};evaluate(next,tuning);if(adapter)expandOptics(next,tuning,depth+1,sid);if(stopped)return;
    }
   }
  }
  const bareCandidate=evaluate({...locked});const referenceCandidate=evaluate(Object.fromEntries(Object.entries({...input.currentChosen,...locked}).filter(([,id])=>!autoExcludedParts.includes(id))),input.currentTuning||{})||(!Object.keys(input.currentChosen||{}).length&&!Object.keys(input.currentTuning||{}).length?bareCandidate:null);
- if(['combat','feedback'].includes(o.completionMode))for(const seed of Seeds?.[pack.weaponId]||[])evaluate({...seed.chosen,...locked},seed.tuning);
+ if(['combat','feedback'].includes(o.completionMode))for(const seed of Seeds?.[pack.weaponId]||[]){
+  const chosen={...seed.chosen,...locked};
+  if(o.completionMode==='combat'&&['unmagnified','magnified'].includes(o.optic)){
+   // Keep the calibrated build and search its optic routes as a combined candidate.
+   for(const [slot,id] of Object.entries(chosen)){
+    const type=opticType(pack,id);
+    if(type&&type!==o.optic&&!locked[slot])delete chosen[slot];
+   }
+   if(!opticStatus(pack,E.assembly(pack,chosen),o.optic).met)expandOptics(chosen,seed.tuning);
+  }
+  evaluate(chosen,seed.tuning);
+ }
  if(o.optic&&o.optic!=='none'&&o.optic!=='any')expandOptics({...locked},{});
  if(o.completionMode==='feedback'&&referenceCandidate&&!stopped){const mutations=[];for(const socket of referenceCandidate.result.allSockets||referenceCandidate.result.sockets){const slot=socket.slotPath||String(socket.socketId);if(locked[slot]||['31','40'].includes(String(socket.socketId)))continue;const candidates=[];for(const id of [null,...socket.optionItemIds]){if(id===referenceCandidate.chosen[slot]||(id&&(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true||pack.display.objects[id]?.selectionDisabledReason)))continue;if(id&&o.optic==='none'&&pack.display.objects[id]?.categoryId==='scope')continue;const next={...referenceCandidate.chosen};if(id)next[slot]=id;else delete next[slot];const candidate=evaluate(next,referenceCandidate.tuning);if(candidate)candidates.push({slot,id,candidate});if(stopped||evaluations>=budget*.18)break;}mutations.push(candidates.sort((a,b)=>compareCandidates(a.candidate,b.candidate)).slice(0,3));if(stopped||evaluations>=budget*.18)break;}for(let i=0;i<mutations.length&&!stopped&&evaluations<budget*.4;i++)for(let j=i+1;j<mutations.length&&!stopped&&evaluations<budget*.4;j++)for(const a of mutations[i])for(const b of mutations[j]){if(stopped||evaluations>=budget*.4)break;const next={...referenceCandidate.chosen};for(const x of [a,b]){if(x.id)next[x.slot]=x.id;else delete next[x.slot];}evaluate(next,referenceCandidate.tuning);}}
  if(o.evaluation==='practical'){let randomState=Number.isInteger(o.searchSeed)?o.searchSeed>>>0:43117;const rand=()=>{randomState=(Math.imul(randomState,1664525)+1013904223)>>>0;return randomState/4294967296;};for(let trial=0;trial<60&&!stopped&&evaluations<budget*.25;trial++){let next={...locked};for(let depth=0;depth<3;depth++){const state=E.assembly(pack,next);for(const socket of state.allSockets||state.sockets){if(['31','40'].includes(String(socket.socketId)))continue;const sid=socket.slotPath||String(socket.socketId);if(locked[sid]||locked[String(socket.socketId)]||rand()>.55)continue;const allowed=socket.optionItemIds.filter(id=>!banned.has(id)&&pack.display.objects[id]?.playerSelectable===true&&!pack.display.objects[id]?.selectionDisabledReason&&(o.optic!=='none'||pack.display.objects[id]?.categoryId!=='scope')&&(!opticType(pack,id)||!o.optic||o.optic==='any'||opticType(pack,id)===o.optic));if(allowed.length)next[sid]=allowed[Math.floor(rand()*allowed.length)];}}evaluate(next);}}
