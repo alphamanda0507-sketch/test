@@ -95,7 +95,17 @@ function feedbackOptions(reference,preferences={}){const targets=[...new Set(pre
 function feedbackAssessment(values,reference,o){const comparison=completionAssessment(values,reference,o.excludedStats),targetSet=new Set(o.feedbackMetrics),targetRegressed=comparison.regressed.filter(k=>targetSet.has(k)),targetImproved=comparison.improved.filter(k=>targetSet.has(k)&&Math.abs(values[k]-reference[k])>=Math.max(k==='ads'||k==='sprintToFire'?1:1e-6,Math.abs(reference[k])*.001));const families=o.feedbackTargets.map(id=>{const keys=FEEDBACK[id].metrics.filter(k=>Number.isFinite(reference[k]));const ratios=keys.map(k=>{const v=values[k],b=reference[k],n=Math.max(.01,Math.abs(b));return !Number.isFinite(v)?1e5:METRICS[k][2]==='min'?v/n:n/Math.max(.0001,v);});return ratios.length?.7*ratios.reduce((a,b)=>a+b,0)/ratios.length+.3*Math.max(...ratios):0;});return{...comparison,targetImproved,targetRegressed,improved:targetImproved.length>0&&targetRegressed.length===0,score:families.reduce((a,b)=>a+b,0)/families.length};}
 
 
-function combatOptions(baseline,preferences={}){const o=simpleOptions(baseline,{...preferences,completionMode:'balanced'});o.completionMode='combat';if(!o.excludedStats.includes('stability'))for(const k of ['breath','moveSway','cameraHorizontal','cameraVertical'])if(Number.isFinite(baseline[k])&&baseline[k]>0){const value=baseline[k]*.6,c=o.constraints.find(c=>c.metric===k&&c.op==='max');if(c){c.value=Math.min(c.value,value);c.source='combatStability';}else o.constraints.push({metric:k,op:'max',value,source:'combatStability'});}return o;}
+function combatOptions(baseline,preferences={}){
+ const o=simpleOptions(baseline,{...preferences,completionMode:'balanced'});
+ o.completionMode='combat';
+ const kickLimit=o.constraints.find(c=>c.metric==='springKick'&&c.op==='max');
+ if(kickLimit){
+  kickLimit.value=baseline.springKick*P.targets.springKick;
+  kickLimit.source='combatWeaponSway';
+ }
+ if(!o.excludedStats.includes('stability'))for(const k of ['breath','moveSway','cameraHorizontal','cameraVertical'])if(Number.isFinite(baseline[k])&&baseline[k]>0){const value=baseline[k]*.6,c=o.constraints.find(c=>c.metric===k&&c.op==='max');if(c){c.value=Math.min(c.value,value);c.source='combatStability';}else o.constraints.push({metric:k,op:'max',value,source:'combatStability'});}
+ return o;
+}
 function combatRisk(v,b,ignored=[],weights){return P.score(v,b,ignored,weights);}
 
 // AKM example supplies a balanced floor, not an asserted universal optimum.
