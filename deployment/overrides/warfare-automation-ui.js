@@ -79,7 +79,7 @@ function start(request=null){
   resultSnapshot=s;results=[];$('opt-results').innerHTML='<p class="empty" data-opt-pending>탐색 중…</p>';
   $('opt-start').disabled=true;$('opt-cancel').disabled=false;$('opt-cancel').hidden=false;
   $('opt-progress').hidden=false;$('opt-progress').value=0;status('탐색 중…');
-  worker=new Worker('warfare-optimize-worker.js?v=thompson-smg-laser-20261110-r25');
+  worker=new Worker('warfare-optimize-worker.js?v=riser-laser-mount-20261110-r26');
   worker.onmessage=event=>{
    if(serial!==runSerial)return;
    const msg=event.data;
@@ -117,6 +117,7 @@ function resultCard(r,i,answer,s){
  const checks=r.checks.map(c=>({met:c.met,text:`${Ometrics[c.metric][0]} ${c.op==='min'?'≥':'≤'} ${fmt(c.value)} · 결과 ${fmt(c.actual)}`}));
  if(!r.optic?.met)checks.push({met:false,text:'조준경 조건 미충족'});
  if(r.tactical&&!r.tactical.met)checks.push({met:false,text:answer.tacticalSupported===false?'호환 전술장비 없음':'전술장비 조건 미충족'});
+ if(r.tactical?.riserMet===false)checks.push({met:false,text:'레이저를 다용도 전술 높이 조절대에 장착해야 합니다.'});
  if(answer.options.suppressor){
   const mounted=WarfareEngine.assembly(s.pack,r.chosen).mounted;
   const met=Object.values(mounted).some(id=>(s.pack.effectsByItemId[id]?.mp||[]).some(e=>e.target==='ShotDistance'&&e.modifier==='Mult_C'&&e.value<1));
@@ -124,8 +125,9 @@ function resultCard(r,i,answer,s){
  }
  const failed=checks.filter(c=>!c.met);
  const losses=(r.feedback?.regressed||r.currentComparison?.regressed||[]).map(k=>Ometrics[k][0]);
- const opticRoutes=(r.optic?.items||[]).map(m=>m.path.split('/').map((_,j,path)=>r.chosen[path.slice(0,j+1).join('/')]).filter(Boolean).map(id=>esc(s.name(id))).join(' → '));
- const gear=(r.tactical?.items||[]).map(m=>esc(s.name(m.id)));
+ const route=m=>m.path.split('/').map((_,j,path)=>r.chosen[path.slice(0,j+1).join('/')]).filter(Boolean).map(id=>esc(s.name(id))).join(' → ');
+ const opticRoutes=(r.optic?.items||[]).map(route);
+ const gear=(r.tactical?.items||[]).map(route);
  const details=[...new Set([...(answer.objectiveTiers||[]).flatMap(t=>Object.keys(t.weights)),
   ...Object.keys(O().STAT_GROUPS),'autoVertical','autoHorizontal','patternClimb','patternWidth','patternStep',
   'patternHorizontalStep','patternJerk','cameraHorizontal','cameraVertical','moveSway','breath','holdBreath','breathRecoil',

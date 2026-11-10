@@ -33,7 +33,7 @@ function tacticalMatches(type,mode){
 
 function tacticalStatus(mounts,mode){
  const items=mounts.filter(m=>m.source==='selected'&&Object.hasOwn(TACTICAL_TYPES,m.itemId))
-  .map(m=>({id:m.itemId,type:TACTICAL_TYPES[m.itemId]}));
+  .map(m=>({id:m.itemId,type:TACTICAL_TYPES[m.itemId],path:m.path}));
  const met=mode==='any'||(mode==='none'?items.length===0:items.length===1&&tacticalMatches(items[0].type,mode));
  return{mode,met,items};
 }
@@ -166,9 +166,28 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
  const preferRaisedOptics=o.completionMode==='combat'&&o.optic!=='none';
  const tacticalSupported=['any','none'].includes(o.tactical)||Object.keys(TACTICAL_TYPES).some(id=>tacticalMatches(TACTICAL_TYPES[id],o.tactical)&&!banned.has(id)&&pack.display.objects[id]?.playerSelectable===true);
  const matchesLens=id=>!preferRaisedOptics||!o.opticId||id===o.opticId;
- function evaluate(chosen,tuning={}){if(evaluations>=(pruning?budget:budget-cleanupReserve)||cancelled()){stopped=true;return null;}const rawKey=key(chosen,tuning);if(cache.has(rawKey))return null;evaluations++;
+ const laserMode=o.tactical==='any'?'laserActive':o.tactical;
+ function riserLaserSlots(state){
+  const slots=[];
+  for(const socket of state.allSockets||state.sockets){
+   const path=socket.slotPath,parent=path.lastIndexOf('/');
+   if(parent<0||state.selected[path.slice(0,parent)]!==tacticalRiser)continue;
+   const ids=socket.optionItemIds.filter(id=>tacticalMatches(TACTICAL_TYPES[id],laserMode)&&tacticalMatches(TACTICAL_TYPES[id],'laserActive')&&!banned.has(id)&&
+    (!locked[path]||locked[path]===id)&&pack.display.objects[id]?.playerSelectable===true&&!pack.display.objects[id]?.selectionDisabledReason);
+   if(ids.length)slots.push({path,ids});
+  }
+  return slots;
+ }
+ function evaluate(chosen,tuning={},tryRiser=true){if(evaluations>=(pruning?budget:budget-cleanupReserve)||cancelled()){stopped=true;return null;}const rawKey=key(chosen,tuning);if(cache.has(rawKey))return null;evaluations++;
   let item=metrics(pack,base,combat,summary,chosen,tuning,o);for(let pass=0;pass<3;pass++){const canonical=Object.fromEntries(item.result.mounts.filter(m=>m.source==='selected').map(m=>[m.path,m.itemId]));if(JSON.stringify(stable(canonical))===JSON.stringify(stable(item.chosen)))break;item=metrics(pack,base,combat,summary,canonical,tuning,o);}const selected=Object.values(item.chosen),mounted=Object.values(item.result.mounted);if(selected.some(id=>banned.has(id))||Object.entries(locked).some(([slot,id])=>item.chosen[slot]!==id)){cache.set(rawKey,null);return null;}
-  const optic=opticStatus(pack,item.result,o.optic);if(preferRaisedOptics&&o.opticId)optic.met=optic.met&&optic.items.some(m=>m.id===o.opticId&&!['31','40'].includes(m.path.split('/').at(-1)));let violation=optic.met?0:2;item.optic=optic;item.tactical=tacticalStatus(item.result.mounts,o.tactical);if(o.tactical!=='any'&&item.tactical.items.length>1){cache.set(rawKey,null);return null;}if(!item.tactical.met)violation+=2;const checks=o.constraints.map(c=>{const actual=item.metrics[c.metric],gap=Number.isFinite(actual)?Math.max(0,c.op==='min'?c.value-actual:actual-c.value):Infinity;violation+=Number.isFinite(gap)?gap/Math.max(1,Math.abs(c.value),Math.abs(baseline.metrics[c.metric]||0)):100;return{...c,actual,met:Number.isFinite(actual)&&gap<=1e-8};});
+  const optic=opticStatus(pack,item.result,o.optic);if(preferRaisedOptics&&o.opticId)optic.met=optic.met&&optic.items.some(m=>m.id===o.opticId&&!['31','40'].includes(m.path.split('/').at(-1)));let violation=optic.met?0:2;item.optic=optic;item.tactical=tacticalStatus(item.result.mounts,o.tactical);if(o.tactical!=='any'&&item.tactical.items.length>1){cache.set(rawKey,null);return null;}if(!item.tactical.met)violation+=2;
+  const lasers=item.tactical.items.filter(m=>tacticalMatches(m.type,'laserActive'));
+  const movableLasers=lasers.filter(m=>!locked[m.path]);
+  const riserSlots=(lasers.length||!item.tactical.met)&&selected.includes(tacticalRiser)?riserLaserSlots(item.result):[];
+  const onRiser=lasers.some(laser=>riserSlots.some(socket=>socket.path===laser.path));
+  item.tactical.riserMet=onRiser||!riserSlots.length||!movableLasers.length;
+  if(!item.tactical.riserMet)violation+=1;
+  const checks=o.constraints.map(c=>{const actual=item.metrics[c.metric],gap=Number.isFinite(actual)?Math.max(0,c.op==='min'?c.value-actual:actual-c.value):Infinity;violation+=Number.isFinite(gap)?gap/Math.max(1,Math.abs(c.value),Math.abs(baseline.metrics[c.metric]||0)):100;return{...c,actual,met:Number.isFinite(actual)&&gap<=1e-8};});
   for(const id of required)if(!mounted.includes(id))violation+=2;
   if(o.suppressor&&!mounted.some(id=>(pack.effectsByItemId[id]?.mp||[]).some(e=>e.target==='ShotDistance'&&e.modifier==='Mult_C'&&e.value<1)))violation+=2;
   const loss=Object.entries(weights).reduce((sum,[k,w])=>{const v=item.metrics[k],b=baseline.metrics[k];if(!Number.isFinite(v))return sum+1e5;const normal=Math.max(Math.abs(b||0),k==='ttk'?50:.01);return sum+w*(METRICS[k][2]==='min'?v/normal:normal/Math.max(v,.0001));},0);
@@ -183,7 +202,17 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
   if(o.completionMode==='feedback'&&item.feasible){const signature=partSignature(item.chosen),oldPart=feedbackBank.get(signature);if(!oldPart||compareCandidates(item,oldPart)<0)feedbackBank.set(signature,item);if(feedbackBank.size>100){const keep=diverseConfigurations([...feedbackBank.values()],80);feedbackBank.clear();for(const x of keep)feedbackBank.set(partSignature(x.chosen),x);}}
   const old=archive.get(item.key);if(!old||compareCandidates(item,old)<0)archive.set(item.key,item);cache.set(rawKey,true);if(item.feasible&&(!bestFeasible||compareCandidates(item,bestFeasible)<0))bestFeasible=item;
   if(archive.size>160){const ranked=[...archive.values()].sort(compareCandidates),keep=o.completionMode==='feedback'?[...new Map([...ranked.slice(0,40),...diverseConfigurations(ranked,40)].map(x=>[x.key,x])).values()]:ranked.slice(0,80);archive.clear();for(const candidate of keep)archive.set(candidate.key,candidate);}
-  if(evaluations%100===0)progress({evaluations,budget,feasible:[...archive.values()].filter(x=>x.feasible).length,elapsedMs:Date.now()-start});return item;
+  if(evaluations%100===0)progress({evaluations,budget,feasible:[...archive.values()].filter(x=>x.feasible).length,elapsedMs:Date.now()-start});
+  // Install the laser and its riser as one candidate so the beam can retain both.
+  if(tryRiser&&optic.met&&(!item.tactical.riserMet||!item.tactical.met)&&riserSlots.length){
+   const next={...item.chosen};
+   for(const laser of movableLasers)delete next[laser.path];
+   const {path,ids}=riserSlots[0];
+   next[path]=movableLasers.find(laser=>ids.includes(laser.id))?.id||ids[0];
+   const routed=evaluate(next,cleanTuning,false);
+   if(routed&&compareCandidates(routed,item)<0)return routed;
+  }
+  return item;
  }
  // Re-evaluate canonical mount paths before scoring/exporting: a candidate must
  // carry exactly the configuration that the builder will apply.
@@ -199,7 +228,7 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
    }
   }
  }
- const bareCandidate=evaluate({...locked});const referenceCandidate=evaluate(Object.fromEntries(Object.entries({...input.currentChosen,...locked}).filter(([,id])=>!autoExcludedParts.includes(id))),input.currentTuning||{})||(!Object.keys(input.currentChosen||{}).length&&!Object.keys(input.currentTuning||{}).length?bareCandidate:null);
+ const bareCandidate=evaluate({...locked});const referenceCandidate=evaluate(Object.fromEntries(Object.entries({...input.currentChosen,...locked}).filter(([,id])=>!autoExcludedParts.includes(id))),input.currentTuning||{},false)||(!Object.keys(input.currentChosen||{}).length&&!Object.keys(input.currentTuning||{}).length?bareCandidate:null);
  if(['combat','feedback'].includes(o.completionMode))for(const seed of Seeds?.[pack.weaponId]||[]){
   const chosen={...seed.chosen,...locked};
   if(preferRaisedOptics){
