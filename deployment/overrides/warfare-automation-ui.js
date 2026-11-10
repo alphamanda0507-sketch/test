@@ -24,7 +24,8 @@ function renderSimpleTargets(){
   const base=O().metrics(s.pack,s.base,s.combat,s.summary,{}, {},options).metrics;
   const current=O().metrics(s.pack,s.base,s.combat,s.summary,s.chosen,s.tuning,options).metrics;
   const mode=$('opt-simple-strategy').value,excludedStats=[...simpleExcludedStats];
-  const settings=mode==='preserve'?O().completionOptions(current,{excludedStats}):O().combatOptions(base,{excludedStats});
+  const profile=O().combatProfile.forWeapon(s.pack);
+  const settings=mode==='preserve'?O().completionOptions(current,{excludedStats}):O().combatOptions(base,{excludedStats},profile);
   O().protectSimpleBallistics(settings,base,current);
   const rows=settings.constraints.map(c=>{
    const [name,unit]=O().METRICS[c.metric];
@@ -78,7 +79,7 @@ function start(request=null){
   resultSnapshot=s;results=[];$('opt-results').innerHTML='<p class="empty" data-opt-pending>탐색 중…</p>';
   $('opt-start').disabled=true;$('opt-cancel').disabled=false;$('opt-cancel').hidden=false;
   $('opt-progress').hidden=false;$('opt-progress').value=0;status('탐색 중…');
-  worker=new Worker('warfare-optimize-worker.js?v=clear-recommendations-20261110-r24');
+  worker=new Worker('warfare-optimize-worker.js?v=thompson-smg-laser-20261110-r25');
   worker.onmessage=event=>{
    if(serial!==runSerial)return;
    const msg=event.data;
@@ -94,14 +95,14 @@ function start(request=null){
   worker.postMessage({pack:s.pack,base:s.base,combat:s.combat,summary:s.summary,currentChosen:s.chosen,currentTuning:s.tuning,options});
  }catch(e){stop();status(e.message,true);}
 }
-function balanceComparison(answer,r){
+function balanceComparison(answer,r,s){
  if(!r.combatRisk)return '';
- const profile=O().combatProfile;
+ const profile=O().combatProfile.forWeapon(s.pack);
  const rows=Object.keys(r.combatRisk.shortfalls).map(k=>{
   const [label,unit]=k==='cameraStability'?['사격 카메라 흔들림 평균','×']:O().METRICS[k];
   return '<tr><td>'+esc(label)+'</td><td>'+fmt(answer.baseline[k]*profile.targets[k])+' '+unit+'</td><td>'+fmt(r.metrics[k])+' '+unit+'</td></tr>';
  });
- return '<details class="laser-state-pair"><summary>인게임 AKM 기준과 세부 수치 비교</summary><table><thead><tr><th>항목</th><th>균형 목표</th><th>후보</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></details>';
+ return '<details class="laser-state-pair"><summary>'+profile.name+' 기준과 세부 수치 비교</summary><table><thead><tr><th>항목</th><th>균형 목표</th><th>후보</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></details>';
 }
 const compactStats=[
  ['recoil','평균 반동'],['springKick','발사 흔들림'],['ads','조준 시간'],['adsMove','조준 이동'],
@@ -145,7 +146,7 @@ function resultCard(r,i,answer,s){
   <details class="opt-disclosure"><summary>상세 수치</summary><div class="auto-metrics">${detailMetrics}</div></details>
   <details class="opt-disclosure"><summary>파츠 ${Object.keys(r.chosen).length}개 · 보정 ${Object.keys(r.tuning).length}개</summary><ul>${parts}</ul>${tuning?`<h4>정밀 보정</h4><ul>${tuning}</ul>`:''}</details>
   ${checks.length?`<details class="opt-disclosure"><summary>조건 확인</summary><ul class="opt-criteria">${checks.map(c=>`<li class="${c.met?'good':'bad'}">${c.met?'✓':'✕'} ${esc(c.text)}</li>`).join('')}</ul></details>`:''}
-  ${balanceComparison(answer,r)}${laserComparison(s,r)}
+  ${balanceComparison(answer,r,s)}${laserComparison(s,r)}
  </article>`;
 }
 function renderResults(answer){
