@@ -17,6 +17,23 @@ function effectiveWeights(o){const groups=o.excludedStats??[];if(!Array.isArray(
 const PRESETS={recoil:{recoil:1},ads:{ads:1},adsMove:{adsMove:1},hipSpread:{hipSpread:1},ttk:{ttk:1},balanced:{recoil:.4,ads:.25,adsMove:.2,hipSpread:.15}};
 function opticType(pack,id){const p=pack.parts[id]?.opticProfile;if(!p)return null;const zooms=[...(p.magnifications||[]),p.defaultMagnification].filter(Number.isFinite);return zooms.length?(Math.max(...zooms)>=2?'magnified':'unmagnified'):'unknown';}
 
+const tacticalRiser='13210000013',microRisers=new Set(['13210000012','13210000014']);
+function opticRiserRank(chosen,lenses){
+ let rank=0;
+ for(const lens of lenses){
+  const slots=lens.path.split('/'),socket=slots.pop();
+  if(socket==='31'||socket==='40')continue;
+  let hasMicro=false;
+  while(slots.length){
+   const id=chosen[slots.join('/')];
+   if(id===tacticalRiser){rank=Math.max(rank,hasMicro?3:2);break;}
+   if(microRisers.has(id)){hasMicro=true;rank=Math.max(rank,1);}
+   slots.pop();
+  }
+ }
+ return rank;
+}
+
 // Enumerate primary lenses through compatible adapter/platform routes.
 // A choice fixes its route as well as the lens, including nested sockets.
 function opticChoices(pack,options={}){
@@ -59,7 +76,10 @@ function lockSelectedOptic(pack,options){
  if(options.optic==='none')throw Error('조준경 제외 조건에서는 특정 조준경을 선택할 수 없습니다.');
  const route=opticChoices(pack,options).find(p=>p.id===options.opticId);
  if(!route)throw Error('선택한 조준경을 장착할 수 없습니다. 무기·배율·제외 파츠·고정 파츠 조건을 확인하세요.');
- return {...options,locked:{...options.locked,...route.chosen},required:[...new Set([...(options.required||[]),options.opticId])],opticRoute:{...route.chosen}};
+ const required=[...new Set([...(options.required||[]),options.opticId])];
+ // In combat mode the selected lens can still use any compatible height.
+ if(options.completionMode==='combat')return {...options,required};
+ return {...options,locked:{...options.locked,...route.chosen},required,opticRoute:{...route.chosen}};
 }
 
 function opticStatus(pack,state,mode='any'){const lenses=state.mounts.filter(m=>m.source==='selected'&&opticType(pack,m.itemId)),primary=lenses.filter(m=>!['31','40'].includes(m.socketId));const allowed=mode==='any'||(mode==='none'?lenses.length===0&&!state.mounts.some(m=>m.source==='selected'&&pack.display.objects[m.itemId]?.categoryId==='scope'):primary.some(m=>opticType(pack,m.itemId)===mode)&&lenses.every(m=>opticType(pack,m.itemId)===mode));return{mode,met:allowed,items:lenses.map(m=>({id:m.itemId,path:m.path,type:opticType(pack,m.itemId)}))};}
@@ -123,9 +143,11 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
  if(o.magazineCapacity!==undefined&&o.magazineCapacity!==null&&o.magazineCapacity!=='any'){const n=o.magazineCapacity==='base'?baseline.metrics.capacity:Number(o.magazineCapacity);if(!Number.isInteger(n)||n<1||n>500)throw Error('탄창 용량을 확인하세요.');o.magazineCapacity=n;o.constraints.push({metric:'capacity',op:'min',value:n,source:'magazineCapacity'});o.constraints.push({metric:'capacity',op:'max',value:n,source:'magazineCapacity'});}
  if(o.preserveControl)for(const metric of ['autoVertical','autoHorizontal','springKick'])o.constraints.push({metric,op:'max',value:reference[metric],source:'currentBuild'});
  const start=Date.now(),cache=new Map(),archive=new Map(),feedbackBank=new Map(),autoExcludedParts=excludedOnlyParts(pack,o),banned=new Set([...o.banned,...autoExcludedParts]),locked=o.locked,required=new Set(o.required),budget=o.maxEvaluations;let evaluations=0,stopped=false,bestFeasible=null,pruning=false;const cleanupReserve=o.excludedStats?.length?Math.min(Math.floor(budget*.25),600):0;
+ const preferRaisedOptics=o.completionMode==='combat'&&o.optic!=='none';
+ const matchesLens=id=>!preferRaisedOptics||!o.opticId||id===o.opticId;
  function evaluate(chosen,tuning={}){if(evaluations>=(pruning?budget:budget-cleanupReserve)||cancelled()){stopped=true;return null;}const rawKey=key(chosen,tuning);if(cache.has(rawKey))return null;evaluations++;
   let item=metrics(pack,base,combat,summary,chosen,tuning,o);for(let pass=0;pass<3;pass++){const canonical=Object.fromEntries(item.result.mounts.filter(m=>m.source==='selected').map(m=>[m.path,m.itemId]));if(JSON.stringify(stable(canonical))===JSON.stringify(stable(item.chosen)))break;item=metrics(pack,base,combat,summary,canonical,tuning,o);}const selected=Object.values(item.chosen),mounted=Object.values(item.result.mounted);if(selected.some(id=>banned.has(id))||Object.entries(locked).some(([slot,id])=>item.chosen[slot]!==id)){cache.set(rawKey,null);return null;}
-  const optic=opticStatus(pack,item.result,o.optic);let violation=optic.met?0:2;item.optic=optic;const checks=o.constraints.map(c=>{const actual=item.metrics[c.metric],gap=Number.isFinite(actual)?Math.max(0,c.op==='min'?c.value-actual:actual-c.value):Infinity;violation+=Number.isFinite(gap)?gap/Math.max(1,Math.abs(c.value),Math.abs(baseline.metrics[c.metric]||0)):100;return{...c,actual,met:Number.isFinite(actual)&&gap<=1e-8};});
+  const optic=opticStatus(pack,item.result,o.optic);if(preferRaisedOptics&&o.opticId)optic.met=optic.met&&optic.items.some(m=>m.id===o.opticId&&!['31','40'].includes(m.path.split('/').at(-1)));let violation=optic.met?0:2;item.optic=optic;const checks=o.constraints.map(c=>{const actual=item.metrics[c.metric],gap=Number.isFinite(actual)?Math.max(0,c.op==='min'?c.value-actual:actual-c.value):Infinity;violation+=Number.isFinite(gap)?gap/Math.max(1,Math.abs(c.value),Math.abs(baseline.metrics[c.metric]||0)):100;return{...c,actual,met:Number.isFinite(actual)&&gap<=1e-8};});
   for(const id of required)if(!mounted.includes(id))violation+=2;
   if(o.suppressor&&!mounted.some(id=>(pack.effectsByItemId[id]?.mp||[]).some(e=>e.target==='ShotDistance'&&e.modifier==='Mult_C'&&e.value<1)))violation+=2;
   const loss=Object.entries(weights).reduce((sum,[k,w])=>{const v=item.metrics[k],b=baseline.metrics[k];if(!Number.isFinite(v))return sum+1e5;const normal=Math.max(Math.abs(b||0),k==='ttk'?50:.01);return sum+w*(METRICS[k][2]==='min'?v/normal:normal/Math.max(v,.0001));},0);
@@ -133,6 +155,7 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
   if(o.evaluation==='practical'){item.practical=practicalScore(item.metrics,baseline.metrics,weights);item.priorityLosses=tiers.map(t=>practicalScore(item.metrics,baseline.metrics,t.weights).loss);}
   if(o.recommendationMode==='simple'&&(!o.excludedStats.includes('control')||!o.excludedStats.includes('stability'))){item.simpleBalanceRisk=simpleBalanceRisk(item.metrics,baseline.metrics,o.excludedStats);if(item.simpleBalanceRisk.recoil)item.simpleRecoilRisk=item.simpleBalanceRisk.recoil;if(item.simpleBalanceRisk.stability)item.simpleStabilityRisk=item.simpleBalanceRisk.stability;item.priorityLosses.unshift(item.simpleBalanceRisk.loss);}
   if(o.completionMode==='combat'){item.combatRisk=combatRisk(item.metrics,baseline.metrics,o.excludedStats,o.combatWeights);item.currentComparison=completionAssessment(item.metrics,reference,o.excludedStats);item.priorityLosses.unshift(item.combatRisk.loss);}
+  if(preferRaisedOptics){item.opticRiserRank=opticRiserRank(item.chosen,optic.items.filter(m=>matchesLens(m.id)));item.priorityLosses.unshift(-item.opticRiserRank);}
   if(o.completionMode==='preserve'){item.completion=completionAssessment(item.metrics,reference,o.excludedStats);item.priorityLosses.unshift(item.completion.score);}
   if(o.completionMode==='feedback'){item.feedback=feedbackAssessment(item.metrics,reference,o);item.priorityLosses.unshift(item.feedback.score);}
   const cleanTuning={};for(const id of selected)for(const tid of pack.parts[id]?.tuneIds||[])if(tuning[tid]!==undefined)cleanTuning[tid]=tuning[tid];item.tuning=cleanTuning;item.loss=loss;item.violation=violation;item.feasible=violation<1e-8&&checks.filter(c=>c.source==='simpleBallistics').every(c=>c.met)&&(o.completionMode!=='feedback'||(checks.every(c=>c.met)&&!item.feedback.targetRegressed.length));item.checks=checks;item.rank=loss+violation*1000;item.key=key(item.chosen,cleanTuning);delete item.combat;
@@ -150,7 +173,7 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
   if(depth>5||stopped)return;const state=E.assembly(pack,chosen);
   for(const socket of state.allSockets||state.sockets){if(prefix&&!socket.slotPath.startsWith(prefix+'/'))continue;if(['31','40'].includes(String(socket.socketId)))continue;const sid=socket.slotPath;
    if(locked[sid]||(sid===String(socket.socketId)&&locked[String(socket.socketId)]))continue;
-   for(const id of socket.optionItemIds){if(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true||pack.display.objects[id]?.selectionDisabledReason)continue;const type=opticType(pack,id),adapter=pack.display.objects[id]?.categoryId==='scope'&&!type&&pack.assembly.socketProviders[id];if(!type&&!adapter)continue;if(o.optic==='none'||(type&&o.optic&&o.optic!=='any'&&type!==o.optic))continue;
+   for(const id of socket.optionItemIds){if(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true||pack.display.objects[id]?.selectionDisabledReason)continue;const type=opticType(pack,id),adapter=pack.display.objects[id]?.categoryId==='scope'&&!type&&pack.assembly.socketProviders[id];if(!type&&!adapter)continue;if(o.optic==='none'||(type&&(!matchesLens(id)||(o.optic&&o.optic!=='any'&&type!==o.optic))))continue;
     const next={...chosen,[sid]:id};evaluate(next,tuning);if(adapter)expandOptics(next,tuning,depth+1,sid);if(stopped)return;
    }
   }
@@ -158,23 +181,23 @@ async function run(input,progress=()=>{},cancelled=()=>false){const{pack,base,co
  const bareCandidate=evaluate({...locked});const referenceCandidate=evaluate(Object.fromEntries(Object.entries({...input.currentChosen,...locked}).filter(([,id])=>!autoExcludedParts.includes(id))),input.currentTuning||{})||(!Object.keys(input.currentChosen||{}).length&&!Object.keys(input.currentTuning||{}).length?bareCandidate:null);
  if(['combat','feedback'].includes(o.completionMode))for(const seed of Seeds?.[pack.weaponId]||[]){
   const chosen={...seed.chosen,...locked};
-  if(o.completionMode==='combat'&&['unmagnified','magnified'].includes(o.optic)){
+  if(preferRaisedOptics){
    // Keep the calibrated build and search its optic routes as a combined candidate.
    for(const [slot,id] of Object.entries(chosen)){
     const type=opticType(pack,id);
-    if(type&&type!==o.optic&&!locked[slot])delete chosen[slot];
+    if(type&&(!matchesLens(id)||(o.optic&&o.optic!=='any'&&type!==o.optic))&&!locked[slot])delete chosen[slot];
    }
-   if(!opticStatus(pack,E.assembly(pack,chosen),o.optic).met)expandOptics(chosen,seed.tuning);
+   expandOptics(chosen,seed.tuning);
   }
   evaluate(chosen,seed.tuning);
  }
- if(o.optic&&o.optic!=='none'&&o.optic!=='any')expandOptics({...locked},{});
+ if(preferRaisedOptics||(o.optic&&o.optic!=='none'&&o.optic!=='any'))expandOptics({...locked},{});
  if(o.completionMode==='feedback'&&referenceCandidate&&!stopped){const mutations=[];for(const socket of referenceCandidate.result.allSockets||referenceCandidate.result.sockets){const slot=socket.slotPath||String(socket.socketId);if(locked[slot]||['31','40'].includes(String(socket.socketId)))continue;const candidates=[];for(const id of [null,...socket.optionItemIds]){if(id===referenceCandidate.chosen[slot]||(id&&(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true||pack.display.objects[id]?.selectionDisabledReason)))continue;if(id&&o.optic==='none'&&pack.display.objects[id]?.categoryId==='scope')continue;const next={...referenceCandidate.chosen};if(id)next[slot]=id;else delete next[slot];const candidate=evaluate(next,referenceCandidate.tuning);if(candidate)candidates.push({slot,id,candidate});if(stopped||evaluations>=budget*.18)break;}mutations.push(candidates.sort((a,b)=>compareCandidates(a.candidate,b.candidate)).slice(0,3));if(stopped||evaluations>=budget*.18)break;}for(let i=0;i<mutations.length&&!stopped&&evaluations<budget*.4;i++)for(let j=i+1;j<mutations.length&&!stopped&&evaluations<budget*.4;j++)for(const a of mutations[i])for(const b of mutations[j]){if(stopped||evaluations>=budget*.4)break;const next={...referenceCandidate.chosen};for(const x of [a,b]){if(x.id)next[x.slot]=x.id;else delete next[x.slot];}evaluate(next,referenceCandidate.tuning);}}
- if(o.evaluation==='practical'){let randomState=Number.isInteger(o.searchSeed)?o.searchSeed>>>0:43117;const rand=()=>{randomState=(Math.imul(randomState,1664525)+1013904223)>>>0;return randomState/4294967296;};for(let trial=0;trial<60&&!stopped&&evaluations<budget*.25;trial++){let next={...locked};for(let depth=0;depth<3;depth++){const state=E.assembly(pack,next);for(const socket of state.allSockets||state.sockets){if(['31','40'].includes(String(socket.socketId)))continue;const sid=socket.slotPath||String(socket.socketId);if(locked[sid]||locked[String(socket.socketId)]||rand()>.55)continue;const allowed=socket.optionItemIds.filter(id=>!banned.has(id)&&pack.display.objects[id]?.playerSelectable===true&&!pack.display.objects[id]?.selectionDisabledReason&&(o.optic!=='none'||pack.display.objects[id]?.categoryId!=='scope')&&(!opticType(pack,id)||!o.optic||o.optic==='any'||opticType(pack,id)===o.optic));if(allowed.length)next[sid]=allowed[Math.floor(rand()*allowed.length)];}}evaluate(next);}}
+ if(o.evaluation==='practical'){let randomState=Number.isInteger(o.searchSeed)?o.searchSeed>>>0:43117;const rand=()=>{randomState=(Math.imul(randomState,1664525)+1013904223)>>>0;return randomState/4294967296;};for(let trial=0;trial<60&&!stopped&&evaluations<budget*.25;trial++){let next={...locked};for(let depth=0;depth<3;depth++){const state=E.assembly(pack,next);for(const socket of state.allSockets||state.sockets){if(['31','40'].includes(String(socket.socketId)))continue;const sid=socket.slotPath||String(socket.socketId);if(locked[sid]||locked[String(socket.socketId)]||rand()>.55)continue;const allowed=socket.optionItemIds.filter(id=>!banned.has(id)&&pack.display.objects[id]?.playerSelectable===true&&!pack.display.objects[id]?.selectionDisabledReason&&(o.optic!=='none'||pack.display.objects[id]?.categoryId!=='scope')&&(!opticType(pack,id)||(matchesLens(id)&&(!o.optic||o.optic==='any'||opticType(pack,id)===o.optic))));if(allowed.length)next[sid]=allowed[Math.floor(rand()*allowed.length)];}}evaluate(next);}}
  const pickBeam=items=>{if(o.completionMode==='feedback')return diverseConfigurations(items,8);if(o.evaluation!=='practical')return items.slice(0,5);const picked=[],seen=new Set();for(const item of items){const signature=['2','3','8'].map(sid=>item.result.mounts.find(m=>m.socketId===sid)?.itemId||'').join('|');if(!seen.has(signature)){picked.push(item);seen.add(signature);}if(picked.length===8)break;}return picked;};
  // Several deterministic passes revisit slots exposed by handguards/barrels.
  // A bounded beam is a search heuristic, never a proof of a global optimum.
- let beam=pickBeam(ordered());for(let round=0;round<(o.evaluation==='practical'?6:4)&&!stopped;round++){let changed=false;for(const seed of beam){for(const socket of seed.result.allSockets||seed.result.sockets){if(o.evaluation==='practical'&&['31','40'].includes(String(socket.socketId)))continue;const sid=socket.slotPath||String(socket.socketId);if(locked[sid]||(sid===String(socket.socketId)&&locked[String(socket.socketId)]))continue;for(const id of [null,...socket.optionItemIds]){if(id&&(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true||pack.display.objects[id]?.selectionDisabledReason))continue;const type=id&&opticType(pack,id);if(id&&o.optic==='none'&&pack.display.objects[id]?.categoryId==='scope')continue;if(type&&o.optic&&o.optic!=='any'&&type!==o.optic)continue;const next={...seed.chosen};if(sid===String(socket.socketId)||!(seed.result.allSockets||[]).some(s=>s.slotPath===String(socket.socketId)))delete next[String(socket.socketId)];if(id)next[sid]=id;else delete next[sid];const candidate=evaluate(next,seed.tuning);if(id&&pack.display.objects[id]?.categoryId==='scope'&&!type&&o.optic!=='none')expandOptics(next,seed.tuning,0,sid);if(candidate&&compareCandidates(candidate,seed)<0)changed=true;if(stopped)break;}if(stopped)break;}if(stopped)break;}
+ let beam=pickBeam(ordered());for(let round=0;round<(o.evaluation==='practical'?6:4)&&!stopped;round++){let changed=false;for(const seed of beam){for(const socket of seed.result.allSockets||seed.result.sockets){if(o.evaluation==='practical'&&['31','40'].includes(String(socket.socketId)))continue;const sid=socket.slotPath||String(socket.socketId);if(locked[sid]||(sid===String(socket.socketId)&&locked[String(socket.socketId)]))continue;for(const id of [null,...socket.optionItemIds]){if(id&&(banned.has(id)||pack.display.objects[id]?.playerSelectable!==true||pack.display.objects[id]?.selectionDisabledReason))continue;const type=id&&opticType(pack,id);if(id&&o.optic==='none'&&pack.display.objects[id]?.categoryId==='scope')continue;if(type&&(!matchesLens(id)||(o.optic&&o.optic!=='any'&&type!==o.optic)))continue;const next={...seed.chosen};if(sid===String(socket.socketId)||!(seed.result.allSockets||[]).some(s=>s.slotPath===String(socket.socketId)))delete next[String(socket.socketId)];if(id)next[sid]=id;else delete next[sid];const candidate=evaluate(next,seed.tuning);if(id&&pack.display.objects[id]?.categoryId==='scope'&&!type&&o.optic!=='none')expandOptics(next,seed.tuning,0,sid);if(candidate&&compareCandidates(candidate,seed)<0)changed=true;if(stopped)break;}if(stopped)break;}if(stopped)break;}
   const next=pickBeam(ordered());if(!changed||next.map(x=>x.key).join()===beam.map(x=>x.key).join())break;beam=next;await new Promise(resolve=>setTimeout(resolve,0));}
  if(o.tune&&!stopped){for(const seed of (o.completionMode==='feedback'?diverseConfigurations(ordered(),5):ordered().slice(0,3))){let current=seed;for(let pass=0;pass<2&&!stopped;pass++)for(const mount of current.result.mounts)for(const tid of pack.parts[mount.itemId]?.tuneIds||[]){if(o.lockTuning&&input.currentTuning?.[tid]!==undefined)continue;const t=E.tuneFor(pack,mount,tid);if(!t||t.enabled===false)continue;const r=t.range,values=[r.minValue,r.defaultValue,r.maxValue,(r.minValue+r.defaultValue)/2,(r.defaultValue+r.maxValue)/2];for(let value of values){if(t.sliderType==='Discrete'&&t.notch>0)value=r.defaultValue+Math.round((value-r.defaultValue)/t.notch)*t.notch;value=Math.min(r.maxValue,Math.max(r.minValue,value));const trial=evaluate(current.chosen,{...current.tuning,[tid]:value});if(trial&&compareCandidates(trial,current)<0)current=trial;if(stopped)break;}if(stopped)break;}if(stopped)break;}}
  // Remove optional parts that do not help any remaining objective or requirement.
